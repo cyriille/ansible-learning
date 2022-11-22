@@ -1,0 +1,68 @@
+---
+
+#0; Ajout du compte user-ansible dans le groupe www-data
+# pour la gestion des droits sur l'aborescence mediawiki
+- name: "add user-ansible"
+  command:
+    usermod -a -G www-data user-ansible
+
+#1. Creation du repertoire pour l'installation des fichiers Mediawiki
+- name: "mediawiki directory"
+  file:
+    path: "{{mediawiki_directory}}"
+    owner: "www-data"
+    group: "www-data"
+    state: directory
+
+#2. Decompresse le fichier source archice Mediawiki et le formate en extension 
+- name: "uncompress mediawiki archive"
+  unarchive:
+    src: "{{mediawiki_archive_url}}"
+    dest: "{{mediawiki_directory}}"
+    owner: "www-data"
+    group: "www-data"
+    remote_src: yes
+    # supprime mediawiki-1.XX.X/ du chemin
+    extra_opts: --transform=s/mediawiki-[0-9\.]*\///
+
+#3. Ajoute les droits d'ecriture pour le groupe www-data
+- name: "add g+w sur le repertoire mediawiki"
+  command:
+    chmod -R g+w {{mediawiki_directory}}
+
+#4. Execute la tache avec l'utilisateur ansible, se place dans le repertoire
+# de maintenance et execute la commande de configuration si le fichier
+# LocalSettings.php n'exixte pas
+- name: "mediawiki configuration"
+  become: yes
+  become_user: "user-ansible"
+  args:
+    creates: "{mediawiki_directory}}/LocalSettings.php"
+    chdir: "{{mediawiki_maintenance_directory}}"
+  command:
+    php install.php --scriptpath /{{mediawiki_name}}
+    --dbname mediawiki --lang fr
+    --dbuser {{mediawiki_db_user}}
+    --dbpass {{mediawiki_db_password}}
+    --pass {{mediawiki_admin_password}}
+    --dbserver {{mediawiki_db_host}}
+    --server http://ansible-serveur_1-1
+    {{mediawiki_title}} {{mediawiki_admin_user}}
+  run_once: yes
+  delegate_to: "{{item}}"
+  with_items: "{{groups.apache}}"
+
+#5. execute la tache avec l'utilisateur ansible, se place dans le repertoire
+## de maintenace et execute la commaned de mise a jour de la base
+# une seule fois
+- name: "mediawiki db update"
+  become: yes
+  become_user: "user-ansible"
+  command:
+    php update.php --quick
+  args:
+    chdir: "{{mediawiki_maintenance_directory}}"
+  # La mise a jour a besoin d'etre lancee une seule fois
+  run_once: yes
+  register: resultat
+  changed_when: "' ...done.' in resultat.stdout"

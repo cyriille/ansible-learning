@@ -1,0 +1,6 @@
+---
+- name: "Installation apache"
+  hosts: ansible-serveur_1-1
+  roles:
+    - role: "apache"
+      php_install: yes

@@ -1,0 +1,14 @@
+---
+
+- name: "mediawiki database"
+  community.mysql.mysql_db:
+    name: "{{mediawiki_db_name}}"
+    state: present
+
+- name: "mediawiki user and privilegs"
+  community.mysql.mysql_user:
+    name: "{{mediawiki_db_user}}"
+    password: "{{mediawiki_db_password}}"
+    priv: "{{mediawiki_db_name}}.*:ALL"
+    host: "ansible-serveur_1-1"
+    state: present
