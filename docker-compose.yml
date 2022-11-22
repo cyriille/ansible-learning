@@ -1,0 +1,34 @@
+version: "3.7"
+
+services:
+
+  node_manager:
+    image: debian:local
+    command: bash -c "
+      apt install -y virtualenv && apt install -y sshpass &&
+      systemctl start ssh && sleep infinity"
+    networks:
+      ansible-network:
+        ipv4_address: 172.16.238.10 
+
+  serveur_1:
+    image: debian:local
+    command: bash -c "systemctl start ssh && sleep infinity"
+    networks:
+      ansible-network:
+        ipv4_address: 172.16.238.11 
+
+  serveur_2:
+    image: debian:local
+    command: bash -c "systemctl start ssh && sleep infinity"
+    networks:
+      ansible-network:
+        ipv4_address: 172.16.238.12 
+
+
+
+networks:
+  ansible-network:
+    ipam:
+      config:
+        - subnet: 172.16.238.0/24
